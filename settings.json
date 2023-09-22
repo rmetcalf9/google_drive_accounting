@@ -1,0 +1,6 @@
+{
+    "google_credentials_file": "./credentials.json",
+    "temporary_token_file": "./token.json",
+    "accounting_root": "/Projects/Property/Dalkey/Accounting/Reciepts",
+    "accounting_folder_id": "12jItn6IK72iiWcf3WIFrD_rEakFJp3Ev"
+}
