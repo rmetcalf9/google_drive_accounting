@@ -1,8 +1,18 @@
 import account_data as ad
 from google_client import MIMETYPE_FOLDER, MIMETYPE_SPREADSHEET
+import os
+import shutil
 
+latest_loaded_from_google_file_name="/latest_loaded_from_google.dat"
 
-def load_account_data(drive_api_helpers, sheets_api_helpers, accouting_folder_id):
+def load_from_latest_saved(local_save_folder):
+    if not os.path.exists(f"{local_save_folder}{latest_loaded_from_google_file_name}"):
+        return None
+    account_data = ad.AccountData()
+    account_data.load_from_file(filename=f"{local_save_folder}{latest_loaded_from_google_file_name}")
+    return account_data
+
+def load_account_data_from_google(drive_api_helpers, sheets_api_helpers, accouting_folder_id, local_save_folder):
     account_data = ad.AccountData()
 
     (files, request) = drive_api_helpers.get_all_items_in_folder(folder_id=accouting_folder_id,restrict_mimetype=[MIMETYPE_FOLDER])
@@ -12,6 +22,21 @@ def load_account_data(drive_api_helpers, sheets_api_helpers, accouting_folder_id
             spreadsheet_id = get_spreadsheet_for_day(drive_api_helpers, file["id"], file["name"])
             load_day(sheets_api_helpers=sheets_api_helpers, spreadsheet_id=spreadsheet_id, day_name=file["name"], account_data=account_data)
         request = files.list_next(request, result)
+
+    if local_save_folder==None:
+        raise Exception("ERROR")
+    if local_save_folder.strip()=="":
+        raise Exception("ERROR")
+    if local_save_folder.strip()=="/":
+        raise Exception("ERROR")
+    if local_save_folder.strip()==".":
+        raise Exception("ERROR")
+    if local_save_folder[-1]=="/":
+        raise Exception("ERROR")
+    if os.path.exists(local_save_folder):
+        shutil.rmtree(local_save_folder)
+    os.mkdir(local_save_folder)
+    account_data.save_to_file(filename=f"{local_save_folder}{latest_loaded_from_google_file_name}")
 
     return account_data
 
