@@ -21,8 +21,10 @@ if __name__ == '__main__':
 
 
     options = []
-    options.append(("Load new data from google", load_new_data_from_google))
-    options.append(("Display",  print_all))
+    options.append(("Load new data from google", appObj.cmd_load_new_data_from_google))
+    options.append(("Display",  appObj.cmd_print_all))
+    options.append(("Display Daily Totals", appObj.cmd_display_daily_totals))
+    options.append(("Display Category Totals", appObj.cmd_display_cetegory_totals))
     options.append(("Quit", None))
     questions = [
         inquirer.List('action',

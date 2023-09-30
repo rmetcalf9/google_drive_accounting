@@ -23,6 +23,16 @@ class AccountData():
         for item in self.items:
             print(item.to_serealizable_string())
 
+    def get_totals(self, property_name):
+        totals = {}
+        for item in self.items:
+            prop_name = getattr(item, property_name).strip().lower()
+            if prop_name in totals:
+                totals[prop_name] += item.amount
+            else:
+                totals[prop_name] = item.amount
+        return totals
+
     def add_reciept_line(
         self,
         day_name,
