@@ -1,4 +1,3 @@
-import json
 import inquirer
 from appObj import appObj
 
@@ -25,6 +24,7 @@ if __name__ == '__main__':
     options.append(("Display",  appObj.cmd_print_all))
     options.append(("Display Daily Totals", appObj.cmd_display_daily_totals))
     options.append(("Display Category Totals", appObj.cmd_display_cetegory_totals))
+    options.append(("Manager", appObj.cmd_manager))
     options.append(("Quit", None))
     questions = [
         inquirer.List('action',

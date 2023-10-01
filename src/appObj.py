@@ -4,6 +4,7 @@ import inquirer
 import account_data_loader
 from google_client import GoogleClient, DriveApiHelpers, SheetsApiHelpers
 from googleapiclient.discovery import build
+from manager import ManagerFunctions
 
 def get_string_with_2_dp(dec):
     a = str(dec).split(".")
@@ -21,6 +22,7 @@ def format_decimal_for_display(dec):
 class appObj():
     settings = None
     account_data = None
+    manager_functions = None
 
     def __init__(self, settings_file_name):
         self.settings = None
@@ -30,6 +32,7 @@ class appObj():
         self.cmd_load_all_data_from_last_saved()
         if self.account_data is None:
             self.cmd_load_new_data_from_google()
+        self.manager_functions = ManagerFunctions()
 
 
     def cmd_print_all(self):
@@ -83,3 +86,6 @@ class appObj():
 
     def cmd_display_cetegory_totals(self):
         return self._display_totals("category")
+
+    def cmd_manager(self):
+        self.manager_functions.menu_main()
