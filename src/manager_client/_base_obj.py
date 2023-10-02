@@ -24,11 +24,28 @@ class base():
     def Timestamp(self):
         return self.raw_dict["Timestamp"]
 
-    def _get_obj_url(self):
-        return urljoin(self.obj_type_guid, self.Key() + ".json")
-
     def _load_full_dict(self, force=False):
         if not force:
             if self.full_dict is not None:
                 return
-        self.full_dict = self.business_obj._call_api_get(url=self._get_obj_url())
+        self.full_dict = self.business_obj.caching_obj_loader.get(
+            obj_type_guid=self.obj_type_guid,
+            key=self.Key(),
+            force=force
+        )
+
+    def _create(business_obj, obj_type_guid, create_json):
+        result = business_obj._call_api_post(
+            url=obj_type_guid + ".json",
+            post_dict=create_json
+        )
+        if result["Success"] != True:
+            raise Exception("Create failed")
+        return business_obj.get_simple_obj(obj_type_guid=obj_type_guid, key=result["Key"])
+
+    def full_data(self):
+        self._load_full_dict()
+        return {
+            "raw_dict": self.raw_dict,
+            "full_dict": self.full_dict
+        }

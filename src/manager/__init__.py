@@ -1,17 +1,19 @@
 import inquirer
 
-from manager_api import Business as ext_lib_Business
 from manager_client import Business
+from .uiHelper import UiHelper
+from decimal import Decimal
 
+# http://localhost:55667/purchase-invoice-view?
+# ogYNVGVzdCBCdXNpbmVzc6oGSS9wdXJjaGFzZS1pbnZvaWNlcz9vZ1lOVkdWemRDQkNkWE5wYm1WemNfQUxBTUFNQUpBTkFMZ05BT2dOQUxnT0FOQVBBUEFRQUHCDBIJKyYfcPjZB0QRhUN2l_BttqDIDADQDAHYDAA
 
 class ManagerFunctions():
-    ext_lib_business = None
     business = None
+    ui_helper = None
 
     def __init__(self):
-        # Open the business. NOTE: Always use a test business first!
-        self.ext_lib_business = ext_lib_Business("http://localhost:55667", "apiuser", "password", "Test Business")
         self.business = Business("http://localhost:55667", "apiuser", "password", "Test Business")
+        self.ui_helper = UiHelper()
 
     def menu_main(self):
         options = []
@@ -32,14 +34,16 @@ class ManagerFunctions():
 
     def menu_testing(self):
         options = []
-        options.append(("*List attributes of business", self.cmd_list_attributes_of_business))
+        options.append(("Reset Cache", self.cmd_reset_cache))
         options.append(("List all suppliers", self.cmd_list_suppliers))
         options.append(("List Bank or Cash accounts", self.cmd_list_bank_or_cash_accounts))
         options.append(("List sub accounts", self.cmd_list_sub_accounts))
         options.append(("List balance sheet accounts", self.cmd_list_balance_sheet_accounts))
         options.append(("List profit and loss statement accounts", self.cmd_list_profit_and_loss_statement_accounts))
         options.append(("List quick purchase invoice accounts", self.cmd_list_quick_purchase_invoice_accounts))
-        options.append(("*Create PO", self.cmd_create_test_purchase_invoice))
+        options.append(("Show First PO", self.cmd_show_first_po))
+        options.append(("Create PO", self.cmd_create_test_purchase_invoice))
+        options.append(("Output Useful URLs", self.cmd_output_useful_urls))
 
         options.append(("Back", None))
         questions = [
@@ -55,11 +59,10 @@ class ManagerFunctions():
                 return
             answers["action"]()
 
-    def _list_objects(self, object_name):
-        obj = getattr(self.ext_lib_business, object_name)
-        suppliers = obj.list()
-        for supplier in suppliers:
-            print(supplier.Name)
+    def cmd_output_useful_urls(self):
+        for obj_type_key in self.business.simple_obj_types.keys():
+            obj_type=self.business.simple_obj_types[obj_type_key]
+            print(f"{obj_type.__name__}: {self.business._get_business_url() + obj_type.obj_type_guid}")
 
     def cmd_list_suppliers(self):
         suppliers = self.business.suppliers()
@@ -71,8 +74,8 @@ class ManagerFunctions():
         for bankorcashaccount in bankorcashaccounts:
             print(bankorcashaccount.Name())
 
-    def cmd_list_attributes_of_business(self):
-        print(self.ext_lib_business.__dict__)
+    def cmd_reset_cache(self):
+        print(self.business.caching_obj_loader.reset_cache())
 
     def cmd_list_sub_accounts(self):
         subaccounts = self.business.subaccounts()
@@ -90,29 +93,59 @@ class ManagerFunctions():
             print(profitandlossstatementaccount.Name())
 
     def cmd_list_quick_purchase_invoice_accounts(self):
-        for account in self._get_quick_purchase_invoice_accounts():
+        for account in self.business.get_quick_purchase_invoice_accounts():
             print(account.Name())
 
-    def _get_quick_purchase_invoice_accounts(self):
-        ret_val = []
-        for account in self.business.profitandlossstatementaccounts():
-            if account.Code() is not None:
-                if account.Code().startswith("RJM"):
-                    ret_val.append(account)
-        return ret_val
+    def cmd_show_first_po(self):
+        first_po = self.business.purchaseinvoices()[0]
+        print(first_po.full_data())
 
     def cmd_create_test_purchase_invoice(self):
-        print("TODO")
+        #for purchaseinvoice in self.business.purchaseinvoices():
+        #    print("DD", purchaseinvoice.full_data())
+
+        supplier = self.ui_helper.prompt_for_obj(
+                prompt="Select supplier",
+                obj_lis=self.business.suppliers()
+        )
+
+        qty = self.ui_helper.get_decimal_value(
+            prompt="Enter Quantity",
+            default="1.0"
+        )
+        purchase_unit_price = self.ui_helper.get_decimal_value(
+            prompt="Enter Unit PRice",
+            default=""
+        )
+
+        account = self.ui_helper.prompt_for_obj(
+                prompt="Select account for expenditure category",
+                obj_lis=self.business.get_quick_purchase_invoice_accounts()
+        )
+
+        lines = []
+        lines.append(self.business.simple_obj_types["PurchaseInvoice"].generate_line(
+            account_guid=account.Key(),
+            qty=qty,
+            purchas_unit_price=purchase_unit_price
+        ))
+
+        response = self.business.simple_obj_types["PurchaseInvoice"].create(
+            business_obj=self.business,
+            description="Manager Debug Test Invoice",
+            supplier_guid=supplier.Key(),
+            lines=lines
+        )
+        print("Response:", response.full_data())
 
 #CustomFieldsAttribute = Union["model.AmortizationEntry", "model.BillableTime", "model.BusinessDetails", "model.CapitalAccount",
 # "model.CreditNote", "model.Customer", "model.DebitNote", "model.DeliveryNote", "model.DepreciationEntry", "model.Employee",
 # "model.ExpenseClaim", "model.FixedAsset", "model.Folder", "model.GoodsReceipt", "model.IntangibleAsset", "model.InterAccountTransfer",
 # "model.InventoryItem", "model.InventoryKit", "model.InventoryTransfer", "model.InventoryWriteOff", "model.Investment",
 # "model.JournalEntry", "model.NonInventoryItem", "model.Payment", "model.Payslip", "model.PayslipContributionItem",
-# "model.PayslipDeductionItem", "model.PayslipEarningsItem", "model.ProductionOrder", "model.Project", "model.PurchaseInvoice",
-# "model.PurchaseOrder", "model.PurchaseQuote", "model.Receipt", "model.RecurringInterAccountTransfer", "model.RecurringJournalEntry",
-# "model.RecurringPayment", "model.RecurringPayslip", "model.RecurringPurchaseInvoice", "model.RecurringPurchaseOrder",
-# "model.RecurringReceipt", "model.RecurringSalesInvoice", "model.RecurringSalesOrder", "model.RecurringSalesQuote",
+# "model.PayslipDeductionItem"
+#
+# RecurringSalesInvoice", "model.RecurringSalesOrder", "model.RecurringSalesQuote",
 # "model.SalesInvoice", "model.SalesOrder", "model.SalesQuote", "model.SpecialAccount",  "model.TaxCode",
 # "model.WithholdingTaxReceipt"]
 
@@ -131,3 +164,4 @@ class ManagerFunctions():
 # 'SubAccount': <class 'abc.SubAccount'>,
 # 'Supplier': <class 'abc.Supplier'>,
 # 'BankOrCashAccount': <class 'abc.BankOrCashAccount'>}
+
