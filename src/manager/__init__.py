@@ -1,5 +1,6 @@
 import inquirer
 
+import Constants
 from manager_client import Business
 from .uiHelper import UiHelper
 from decimal import Decimal
@@ -18,6 +19,7 @@ class ManagerFunctions():
     def menu_main(self):
         options = []
         options.append(("Testing functions", self.menu_testing))
+        options.append(("Enter Quick Purchase & Payment", self.cmd_enter_quick_purchase_and_payment))
         options.append(("Back", None))
         questions = [
             inquirer.List('action',
@@ -43,6 +45,8 @@ class ManagerFunctions():
         options.append(("List quick purchase invoice accounts", self.cmd_list_quick_purchase_invoice_accounts))
         options.append(("Show First PO", self.cmd_show_first_po))
         options.append(("Create PO", self.cmd_create_test_purchase_invoice))
+        options.append(("Show First Payment", self.cmd_show_first_payment))
+        options.append(("Create Payment", self.cmd_create_test_supplier_payment))
         options.append(("Output Useful URLs", self.cmd_output_useful_urls))
 
         options.append(("Back", None))
@@ -100,6 +104,11 @@ class ManagerFunctions():
         first_po = self.business.purchaseinvoices()[0]
         print(first_po.full_data())
 
+    def cmd_show_first_payment(self):
+        first_payment = self.business.payments()[0]
+        print(first_payment.full_data())
+
+
     def cmd_create_test_purchase_invoice(self):
         #for purchaseinvoice in self.business.purchaseinvoices():
         #    print("DD", purchaseinvoice.full_data())
@@ -114,7 +123,7 @@ class ManagerFunctions():
             default="1.0"
         )
         purchase_unit_price = self.ui_helper.get_decimal_value(
-            prompt="Enter Unit PRice",
+            prompt="Enter Unit Price",
             default=""
         )
 
@@ -129,7 +138,6 @@ class ManagerFunctions():
             qty=qty,
             purchas_unit_price=purchase_unit_price
         ))
-
         response = self.business.simple_obj_types["PurchaseInvoice"].create(
             business_obj=self.business,
             description="Manager Debug Test Invoice",
@@ -137,6 +145,94 @@ class ManagerFunctions():
             lines=lines
         )
         print("Response:", response.full_data())
+
+    def cmd_create_test_supplier_payment(self):
+        supplier = self.ui_helper.prompt_for_obj(
+                prompt="Select supplier",
+                obj_lis=self.business.suppliers()
+        )
+        paid_from_account_guid = self.ui_helper.prompt_for_obj(
+                prompt="Select account this was paid from",
+                obj_lis=self.business.bankorcashaccouts()
+        )
+
+        amount = self.ui_helper.get_decimal_value(
+            prompt="Enter Amount",
+            default=""
+        )
+        account = self.ui_helper.prompt_for_obj(
+                prompt="Select account for expenditure category",
+                obj_lis=self.business.get_quick_purchase_invoice_accounts()
+        )
+
+        lines = []
+        lines.append(self.business.simple_obj_types["Payment"].generate_line(
+            account_guid=account,
+            amount=amount
+        ))
+        response = self.business.simple_obj_types["Payment"].create(
+            business_obj=self.business,
+            reference="Manager Debug Test supplier payment",
+            description="Description of test payment",
+            paid_from_account_guid=paid_from_account_guid.Key(),
+            supplier_guid=supplier.Key()
+        )
+        print("Response:", response.full_data())
+
+    def cmd_enter_quick_purchase_and_payment(self):
+        supplier = self.ui_helper.prompt_for_obj(
+                prompt="Select supplier",
+                obj_lis=self.business.suppliers()
+        )
+        account = self.ui_helper.prompt_for_obj(
+                prompt="Select account for expenditure category",
+                obj_lis=self.business.get_quick_purchase_invoice_accounts()
+        )
+        description = self.ui_helper.get_text_value(
+            prompt="Enter Description"
+        )
+        qty = self.ui_helper.get_decimal_value(
+            prompt="Enter Quantity",
+            default="1.0"
+        )
+        purchase_unit_price = self.ui_helper.get_decimal_value(
+            prompt="Enter Unit Price",
+            default=""
+        )
+        paid_from_account_guid = self.ui_helper.prompt_for_obj(
+                prompt="Select account this was paid from",
+                obj_lis=self.business.bankorcashaccouts()
+        )
+
+        print("Creating invoice")
+        invoice_lines = []
+        invoice_lines.append(self.business.simple_obj_types["PurchaseInvoice"].generate_line(
+            account_guid=account.Key(),
+            qty=qty,
+            purchas_unit_price=purchase_unit_price
+        ))
+        invoice = self.business.simple_obj_types["PurchaseInvoice"].create(
+            business_obj=self.business,
+            description=description,
+            supplier_guid=supplier.Key(),
+            lines=invoice_lines
+        )
+        print("Now creating payment")
+        payment_lines = []
+        payment_lines.append(self.business.simple_obj_types["Payment"].generate_line(
+            account_guid=Constants.BalanceSheetAccountsPayableAccountUuid,
+            amount=purchase_unit_price * qty,
+            accounts_payable_supplier=supplier.Key(),
+            purchase_invoice=invoice.Key(),
+        ))
+        response2 = self.business.simple_obj_types["Payment"].create(
+            business_obj=self.business,
+            reference=None,
+            lines=payment_lines,
+            description=description,
+            paid_from_account_guid=paid_from_account_guid.Key(),
+            supplier_guid=supplier.Key()
+        )
 
 #CustomFieldsAttribute = Union["model.AmortizationEntry", "model.BillableTime", "model.BusinessDetails", "model.CapitalAccount",
 # "model.CreditNote", "model.Customer", "model.DebitNote", "model.DeliveryNote", "model.DepreciationEntry", "model.Employee",

@@ -26,3 +26,13 @@ class UiHelper():
         answers = inquirer.prompt(questions)
         return Decimal(answers["main"])
 
+    def get_text_value(self, prompt):
+        questions = [
+            inquirer.Text('main',
+                          message=prompt,
+                          default=None
+                          ),
+        ]
+        answers = inquirer.prompt(questions)
+        return answers["main"]
+

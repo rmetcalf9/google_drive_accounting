@@ -1,5 +1,4 @@
 import json
-import inquirer
 
 import account_data_loader
 from google_client import GoogleClient, DriveApiHelpers, SheetsApiHelpers

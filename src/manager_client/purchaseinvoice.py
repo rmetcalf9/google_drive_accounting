@@ -33,7 +33,6 @@ class PurchaseInvoice(base):
     ):
         if lines is None:
             raise Exception("Must supply lines")
-        now = datetime.datetime.now(pytz.timezone("UTC"))
         create_json = {
             "IssueDate": issue_date,
             "DueDate": "Net",

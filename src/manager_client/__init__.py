@@ -9,6 +9,7 @@ from .profitandlossstatementaccounts import ProfitAndLossStatementAccount
 from .balancesheetaccounts import BalanceSheetAccount
 from .cachingObjLoader import CachingObjLoader
 from .purchaseinvoice import PurchaseInvoice
+from .payment import Payment
 
 def _b64encode(string):
     if hasattr(string, "encode"):
@@ -27,7 +28,8 @@ class Business():
         "SubAccount": SubAccount,
         "ProfitAndLossStatementAccount": ProfitAndLossStatementAccount,
         "BalanceSheetAccount": BalanceSheetAccount,
-        "PurchaseInvoice": PurchaseInvoice
+        "PurchaseInvoice": PurchaseInvoice,
+        "Payment": Payment
     }
 
     def __init__(self, url, username, password, name):
@@ -104,6 +106,12 @@ class Business():
         ret_val = []
         for ite in self._call_api_get(PurchaseInvoice.obj_type_guid + ".json"):
             ret_val.append(PurchaseInvoice(ite, business_obj=self))
+        return ret_val
+
+    def payments(self):
+        ret_val = []
+        for ite in self._call_api_get(Payment.obj_type_guid + ".json"):
+            ret_val.append(Payment(ite, business_obj=self))
         return ret_val
 
     def get_quick_purchase_invoice_accounts(self):
